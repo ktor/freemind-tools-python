@@ -269,6 +269,45 @@ def questions_command(path=None):
     result = freemind.freemind_load(path)
     freemind.traverse(result, fn_list)
 
+def estimateconsultant_command(path=None, format=' - {fullnodepath}, {@estimate}h'):
+    check_path(path)  
+
+    def fn_list(n):
+        if not hasattr(fn_list, 'result'):
+            fn_list.result = []
+            fn_list.total = 0
+            fn_list.consultant = 0
+
+        if n.has_attr('estimate'):
+            if n.has_attr('@ICON') and BTN_STOP in n.get_attr('@ICON'):
+                return
+            consultant_help = float(n.get_attr('estimate')) * get_consultant_rate(n)
+            if consultant_help > 0:
+                fn_list.result.append(format_node(n, format) + ", consultant help: %.2fh at rate %.2f" % (consultant_help, get_consultant_rate(n)))
+                fn_list.consultant += consultant_help
+            else:
+                fn_list.result.append(format_node(n, format))
+                fn_list.total += float(n.get_attr('estimate'))
+
+            fn_list.total += float(n.get_attr('estimate'))
+
+    result = freemind.freemind_load(path)
+    freemind.traverse(result, fn_list)
+
+    [print(i) for i in sorted(fn_list.result)]
+    print("\nCompany insource: %sh %.2fMD" % hours_and_MD(fn_list.total))
+    print("Plus external consultant: %.2fh %.2fMD" % hours_and_MD(fn_list.consultant))
+    print("Total: %sh %.2fMD" % hours_and_MD((fn_list.consultant + fn_list.total)))
+
+def hours_and_MD(hours):
+    return (hours, hours/8)
+
+def get_consultant_rate(node):
+    if (node.has_attr('consultant')):
+        return float(node.get_attr('consultant'))/100
+    if (node.get_parent() is not None):
+        return get_consultant_rate(node.get_parent())
+    return 0
 
 def estimate_command(path=None, format=' - {grandparent}/{parent}/{title}, {@estimate}h'):
     check_path(path)  
